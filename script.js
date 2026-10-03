@@ -12,6 +12,7 @@ const sensorButton = document.getElementById("sensorButton");
 const calibrateButton = document.getElementById("calibrateButton");
 const copyButton = document.getElementById("copyButton");
 const swatchesElement = document.getElementById("swatches");
+const MAX_SWATCHES = 4;
 
 function makeId() {
   return globalThis.crypto?.randomUUID?.() ?? `swatch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -27,10 +28,7 @@ const state = {
   selectedSwatchId: null,
   sensorsEnabled: false,
   swatches: [
-    { id: makeId(), hue: 13, saturation: 100, lightness: 63 },
-    { id: makeId(), hue: 38, saturation: 96, lightness: 60 },
-    { id: makeId(), hue: 357, saturation: 68, lightness: 48 },
-    { id: makeId(), hue: 299, saturation: 96, lightness: 18 }
+    { id: makeId(), hue: 350, saturation: 88, lightness: 50 }
   ]
 };
 
@@ -106,7 +104,18 @@ function setColor(next) {
 }
 
 function renderSwatches(selectedHex = currentHex()) {
-  swatchesElement.replaceChildren(...state.swatches.map((swatch, index) => {
+  const slots = Array.from({ length: MAX_SWATCHES }, (_, index) => {
+    const slot = document.createElement("div");
+    const swatch = state.swatches[index];
+    slot.className = "swatch-slot";
+    slot.dataset.index = index;
+
+    if (!swatch) {
+      slot.classList.add("is-empty");
+      slot.setAttribute("aria-hidden", "true");
+      return slot;
+    }
+
     const button = document.createElement("button");
     const hex = hslToHex(swatch.hue, swatch.saturation, swatch.lightness);
     button.className = "swatch";
@@ -114,7 +123,7 @@ function renderSwatches(selectedHex = currentHex()) {
     button.dataset.id = swatch.id;
     button.dataset.index = index;
     button.style.setProperty("--swatch-color", hex);
-    button.dataset.hex = hex;
+    button.dataset.hex = hex.toLowerCase();
     button.setAttribute("aria-label", `Use swatch ${hex}, ${colorLabel(swatch)}`);
     button.setAttribute("aria-current", swatch.id === state.selectedSwatchId || hex === selectedHex ? "true" : "false");
     button.addEventListener("click", (event) => {
@@ -130,8 +139,11 @@ function renderSwatches(selectedHex = currentHex()) {
       statusLine.textContent = `${hex} loaded from your swatches.`;
     });
     button.addEventListener("pointerdown", startSwatchGesture);
-    return button;
-  }));
+    slot.append(button);
+    return slot;
+  });
+
+  swatchesElement.replaceChildren(...slots);
 }
 
 function selectedSwatchIndex() {
@@ -216,17 +228,15 @@ function reorderDraggedSwatch(pointerX) {
 
   const [moved] = state.swatches.splice(fromIndex, 1);
   state.swatches.splice(toIndex, 0, moved);
-
-  if (targetElement) {
-    swatchesElement.insertBefore(swatchGesture.button, targetElement);
-  } else {
-    swatchesElement.append(swatchGesture.button);
-  }
-
-  [...swatchesElement.querySelectorAll(".swatch")].forEach((element, index) => {
-    element.dataset.index = index;
-  });
-
+  renderSwatches();
+  swatchGesture.button = swatchesElement.querySelector(`[data-id="${swatchGesture.id}"]`);
+  swatchGesture.button.classList.add("is-lifted");
+  swatchGesture.button.style.transform = `translate(${swatchGesture.currentX - swatchGesture.startX}px, ${swatchGesture.currentY - swatchGesture.startY}px) scale(1.06)`;
+  swatchGesture.button.classList.toggle("is-delete-target", swatchGesture.currentY - swatchGesture.startY < -64);
+  swatchGesture.button.addEventListener("pointermove", moveSwatchGesture);
+  swatchGesture.button.addEventListener("pointerup", endSwatchGesture);
+  swatchGesture.button.addEventListener("pointercancel", cancelSwatchGesture);
+  captureSwatchPointer(swatchGesture.button, swatchGesture.pointerId);
   swatchGesture.index = toIndex;
 }
 
@@ -296,7 +306,7 @@ function handleOrientation(event) {
   const tiltSide = typeof event.gamma === "number" ? event.gamma : 0;
   const hue = heading === null ? state.hue : heading - state.headingOffset;
   state.lastHeading = heading ?? state.lastHeading;
-  const lightness = clamp(((tiltFrontBack - 45) / 90) * 100, 0, 100);
+  const lightness = clamp(((tiltFrontBack - 60) / 60) * 100, 0, 100);
   const saturation = clamp(92 - Math.abs(tiltSide) * 0.85, 42, 100);
 
   state.tintOffset = Math.round(lightness - 50);
@@ -342,7 +352,7 @@ function addSwatch() {
   };
   const hex = currentHex();
   state.selectedSwatchId = swatch.id;
-  state.swatches = [swatch, ...state.swatches.filter((saved) => hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, 12);
+  state.swatches = [swatch, ...state.swatches.filter((saved) => hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, MAX_SWATCHES);
   renderSwatches(hex);
   statusLine.textContent = `${hex} added to your swatches.`;
 }
