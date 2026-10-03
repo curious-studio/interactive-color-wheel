@@ -13,6 +13,10 @@ const calibrateButton = document.getElementById("calibrateButton");
 const copyButton = document.getElementById("copyButton");
 const swatchesElement = document.getElementById("swatches");
 
+function makeId() {
+  return globalThis.crypto?.randomUUID?.() ?? `swatch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 const state = {
   hue: 350,
   saturation: 88,
@@ -20,13 +24,28 @@ const state = {
   tintOffset: 0,
   headingOffset: 0,
   lastHeading: 0,
+  selectedSwatchId: null,
   sensorsEnabled: false,
   swatches: [
-    { hue: 13, saturation: 100, lightness: 63 },
-    { hue: 38, saturation: 96, lightness: 60 },
-    { hue: 357, saturation: 68, lightness: 48 },
-    { hue: 299, saturation: 96, lightness: 18 }
+    { id: makeId(), hue: 13, saturation: 100, lightness: 63 },
+    { id: makeId(), hue: 38, saturation: 96, lightness: 60 },
+    { id: makeId(), hue: 357, saturation: 68, lightness: 48 },
+    { id: makeId(), hue: 299, saturation: 96, lightness: 18 }
   ]
+};
+
+const swatchGesture = {
+  button: null,
+  id: null,
+  index: -1,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  currentX: 0,
+  currentY: 0,
+  longPressTimer: null,
+  isEditing: false,
+  didDrag: false
 };
 
 function clamp(value, min, max) {
@@ -70,7 +89,7 @@ function colorLabel(color = state) {
 function setColor(next) {
   state.hue = wrapHue(next.hue ?? state.hue);
   state.saturation = clamp(Math.round(next.saturation ?? state.saturation), 35, 100);
-  state.lightness = clamp(Math.round(next.lightness ?? state.lightness), 8, 92);
+  state.lightness = clamp(Math.round(next.lightness ?? state.lightness), 0, 100);
 
   const hex = currentHex();
   root.style.setProperty("--hue", state.hue);
@@ -87,23 +106,176 @@ function setColor(next) {
 }
 
 function renderSwatches(selectedHex = currentHex()) {
-  swatchesElement.replaceChildren(...state.swatches.map((swatch) => {
+  swatchesElement.replaceChildren(...state.swatches.map((swatch, index) => {
     const button = document.createElement("button");
     const hex = hslToHex(swatch.hue, swatch.saturation, swatch.lightness);
     button.className = "swatch";
     button.type = "button";
+    button.dataset.id = swatch.id;
+    button.dataset.index = index;
     button.style.setProperty("--swatch-color", hex);
     button.dataset.hex = hex;
     button.setAttribute("aria-label", `Use swatch ${hex}, ${colorLabel(swatch)}`);
-    button.setAttribute("aria-current", hex === selectedHex ? "true" : "false");
-    button.addEventListener("click", () => {
+    button.setAttribute("aria-current", swatch.id === state.selectedSwatchId || hex === selectedHex ? "true" : "false");
+    button.addEventListener("click", (event) => {
+      if (swatchGesture.didDrag) {
+        event.preventDefault();
+        return;
+      }
+
+      state.selectedSwatchId = swatch.id;
       state.tintOffset = swatch.lightness - 50;
       setColor(swatch);
       renderSwatches(hex);
       statusLine.textContent = `${hex} loaded from your swatches.`;
     });
+    button.addEventListener("pointerdown", startSwatchGesture);
     return button;
   }));
+}
+
+function selectedSwatchIndex() {
+  return state.swatches.findIndex((swatch) => swatch.id === swatchGesture.id);
+}
+
+function captureSwatchPointer(button, pointerId) {
+  try {
+    button.setPointerCapture?.(pointerId);
+  } catch (error) {
+    // Some synthetic and interrupted pointer paths do not allow capture.
+  }
+}
+
+function startSwatchGesture(event) {
+  if (event.button !== undefined && event.button !== 0) {
+    return;
+  }
+
+  clearTimeout(swatchGesture.longPressTimer);
+  swatchGesture.button = event.currentTarget;
+  swatchGesture.id = swatchGesture.button.dataset.id;
+  swatchGesture.index = Number(swatchGesture.button.dataset.index);
+  swatchGesture.pointerId = event.pointerId;
+  swatchGesture.startX = event.clientX;
+  swatchGesture.startY = event.clientY;
+  swatchGesture.currentX = event.clientX;
+  swatchGesture.currentY = event.clientY;
+  swatchGesture.isEditing = false;
+  swatchGesture.didDrag = false;
+  state.selectedSwatchId = swatchGesture.id;
+
+  swatchGesture.longPressTimer = window.setTimeout(() => {
+    swatchGesture.isEditing = true;
+    swatchGesture.didDrag = true;
+    captureSwatchPointer(swatchGesture.button, event.pointerId);
+    swatchesElement.classList.add("is-editing");
+    swatchGesture.button.classList.add("is-lifted");
+    statusLine.textContent = "Move left or right to rearrange. Push upward to delete.";
+  }, 420);
+
+  swatchGesture.button.addEventListener("pointermove", moveSwatchGesture);
+  swatchGesture.button.addEventListener("pointerup", endSwatchGesture);
+  swatchGesture.button.addEventListener("pointercancel", cancelSwatchGesture);
+}
+
+function moveSwatchGesture(event) {
+  const dx = event.clientX - swatchGesture.startX;
+  const dy = event.clientY - swatchGesture.startY;
+
+  swatchGesture.currentX = event.clientX;
+  swatchGesture.currentY = event.clientY;
+
+  if (!swatchGesture.isEditing && Math.hypot(dx, dy) > 10) {
+    clearTimeout(swatchGesture.longPressTimer);
+  }
+
+  if (!swatchGesture.isEditing) {
+    return;
+  }
+
+  event.preventDefault();
+  swatchGesture.didDrag = true;
+  swatchGesture.button.style.transform = `translate(${dx}px, ${dy}px) scale(1.06)`;
+  swatchGesture.button.classList.toggle("is-delete-target", dy < -64);
+  reorderDraggedSwatch(event.clientX);
+}
+
+function reorderDraggedSwatch(pointerX) {
+  const fromIndex = selectedSwatchIndex();
+  const swatchElements = [...swatchesElement.querySelectorAll(".swatch:not(.is-lifted)")];
+  const targetElement = swatchElements.find((element) => {
+    const rect = element.getBoundingClientRect();
+    return pointerX < rect.left + rect.width / 2;
+  });
+  const rawToIndex = targetElement ? Number(targetElement.dataset.index) : state.swatches.length - 1;
+  const toIndex = rawToIndex > fromIndex ? rawToIndex - 1 : rawToIndex;
+
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+    return;
+  }
+
+  const [moved] = state.swatches.splice(fromIndex, 1);
+  state.swatches.splice(toIndex, 0, moved);
+
+  if (targetElement) {
+    swatchesElement.insertBefore(swatchGesture.button, targetElement);
+  } else {
+    swatchesElement.append(swatchGesture.button);
+  }
+
+  [...swatchesElement.querySelectorAll(".swatch")].forEach((element, index) => {
+    element.dataset.index = index;
+  });
+
+  swatchGesture.index = toIndex;
+}
+
+function endSwatchGesture(event) {
+  clearTimeout(swatchGesture.longPressTimer);
+
+  if (swatchGesture.isEditing) {
+    const dy = event.clientY - swatchGesture.startY;
+
+    if (dy < -64 && state.swatches.length > 1) {
+      state.swatches = state.swatches.filter((swatch) => swatch.id !== swatchGesture.id);
+      state.selectedSwatchId = null;
+      statusLine.textContent = "Swatch deleted.";
+    } else if (dy < -64) {
+      statusLine.textContent = "Keep at least one swatch in the tray.";
+    } else {
+      statusLine.textContent = "Swatches rearranged.";
+    }
+  }
+
+  finishSwatchGesture();
+  renderSwatches();
+}
+
+function cancelSwatchGesture() {
+  clearTimeout(swatchGesture.longPressTimer);
+  finishSwatchGesture();
+  renderSwatches();
+}
+
+function finishSwatchGesture() {
+  if (swatchGesture.button) {
+    swatchGesture.button.style.transform = "";
+    swatchGesture.button.classList.remove("is-lifted", "is-delete-target");
+    swatchGesture.button.removeEventListener("pointermove", moveSwatchGesture);
+    swatchGesture.button.removeEventListener("pointerup", endSwatchGesture);
+    swatchGesture.button.removeEventListener("pointercancel", cancelSwatchGesture);
+  }
+
+  swatchesElement.classList.remove("is-editing");
+  swatchGesture.button = null;
+  swatchGesture.id = null;
+  swatchGesture.index = -1;
+  swatchGesture.pointerId = null;
+  swatchGesture.isEditing = false;
+
+  window.setTimeout(() => {
+    swatchGesture.didDrag = false;
+  }, 0);
 }
 
 function headingFromEvent(event) {
@@ -124,17 +296,17 @@ function handleOrientation(event) {
   const tiltSide = typeof event.gamma === "number" ? event.gamma : 0;
   const hue = heading === null ? state.hue : heading - state.headingOffset;
   state.lastHeading = heading ?? state.lastHeading;
-  const tintOffset = clamp(tiltFrontBack * 0.7, -42, 42);
+  const lightness = clamp(((tiltFrontBack - 45) / 90) * 100, 0, 100);
   const saturation = clamp(92 - Math.abs(tiltSide) * 0.85, 42, 100);
 
-  state.tintOffset = Math.round(tintOffset);
+  state.tintOffset = Math.round(lightness - 50);
   setColor({
     hue,
     saturation,
-    lightness: 50 + tintOffset
+    lightness
   });
 
-  statusLine.textContent = "Compass is steering hue. Tilt forward and back for tint, side to side for saturation.";
+  statusLine.textContent = "Compass is steering hue. Upright is 50% light; tilt down to darken and up to brighten.";
 }
 
 async function enableSensors() {
@@ -163,11 +335,13 @@ async function enableSensors() {
 
 function addSwatch() {
   const swatch = {
+    id: makeId(),
     hue: state.hue,
     saturation: state.saturation,
     lightness: state.lightness
   };
   const hex = currentHex();
+  state.selectedSwatchId = swatch.id;
   state.swatches = [swatch, ...state.swatches.filter((saved) => hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, 12);
   renderSwatches(hex);
   statusLine.textContent = `${hex} added to your swatches.`;
