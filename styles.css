@@ -1,0 +1,318 @@
+:root {
+  color-scheme: dark;
+  --hue: 350;
+  --sat: 88%;
+  --light: 50%;
+  --selected: hsl(var(--hue) var(--sat) var(--light));
+  --selected-hex: #d7194b;
+  --ink: #fffaf7;
+  --ink-muted: rgba(255, 250, 247, 0.76);
+  --glass: rgba(20, 7, 13, 0.24);
+  --glass-strong: rgba(16, 4, 9, 0.52);
+  --outline: rgba(255, 255, 255, 0.88);
+  --shadow: rgba(34, 0, 15, 0.42);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #171015;
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100svh;
+}
+
+.sensor-panel {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto auto;
+  gap: clamp(14px, 2.2svh, 26px);
+  padding: max(18px, env(safe-area-inset-top)) clamp(18px, 4vw, 42px) max(18px, env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+.ambient-wheel {
+  position: absolute;
+  inset: -18%;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 50% 46%, hsl(var(--hue) 90% 82%) 0 12%, transparent 40%),
+    conic-gradient(from calc((var(--hue) - 140) * 1deg), #ec443a, #ffb338, #fff3b0, #41cf89, #1aa5ff, #6f3cf0, #e01880, #ec443a);
+  filter: saturate(1.16);
+  transform: scale(1.08);
+}
+
+.ambient-wheel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.62), transparent 34%, rgba(37, 2, 11, 0.46) 78%, rgba(9, 0, 4, 0.9)),
+    linear-gradient(110deg, hsla(calc(var(--hue) - 30) 92% 54% / 0.68), hsla(calc(var(--hue) + 36) 90% 42% / 0.75));
+  mix-blend-mode: multiply;
+}
+
+.top-bar,
+.action-row,
+.readout-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.top-bar {
+  min-height: 52px;
+}
+
+.eyebrow,
+h1,
+.status-line {
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 14em;
+  font-size: clamp(1.35rem, 6.5vw, 2.8rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.icon-button,
+.sensor-button,
+.ghost-button,
+.add-button {
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon-button {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(18px);
+}
+
+.icon-button span {
+  display: block;
+  font-size: 1.35rem;
+  transform: translateY(-1px);
+}
+
+.readout-strip {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  color: var(--ink-muted);
+}
+
+.readout-strip span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(14px);
+}
+
+.readout-strip strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-zone {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: clamp(24px, 4svh, 42px);
+  padding-block: 2svh;
+}
+
+.sample-card {
+  width: min(56vw, 390px);
+  min-width: 230px;
+  aspect-ratio: 1.45;
+  border: clamp(6px, 1.4vw, 12px) solid var(--outline);
+  border-radius: clamp(24px, 5vw, 44px);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 42%),
+    var(--selected);
+  box-shadow: 0 24px 70px var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.add-button {
+  min-width: min(420px, 82vw);
+  min-height: 72px;
+  padding: 18px 34px;
+  border-radius: 999px;
+  background: rgba(55, 0, 12, 0.68);
+  box-shadow: 0 16px 46px rgba(40, 0, 8, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  font-size: clamp(1.25rem, 6vw, 2.7rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.status-line {
+  max-width: 32rem;
+  color: var(--ink-muted);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.fallback-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 12px;
+  border-radius: 22px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+}
+
+.fallback-controls label {
+  display: grid;
+  gap: 8px;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fallback-controls input {
+  width: 100%;
+  accent-color: var(--selected);
+}
+
+.action-row {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.sensor-button,
+.ghost-button {
+  min-height: 44px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.sensor-button {
+  background: var(--ink);
+  color: #27000b;
+}
+
+.ghost-button {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.swatch-tray {
+  margin-inline: calc(clamp(18px, 4vw, 42px) * -1);
+  padding-inline: clamp(18px, 4vw, 42px);
+  overflow: hidden;
+}
+
+.swatches {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(86px, 18vw, 205px);
+  gap: clamp(12px, 3vw, 26px);
+  overflow-x: auto;
+  padding: 4px 0 8px;
+  scroll-snap-type: x proximity;
+}
+
+.swatch {
+  position: relative;
+  height: clamp(86px, 16vw, 160px);
+  border: 0;
+  border-radius: 14px;
+  background: var(--swatch-color);
+  color: transparent;
+  cursor: pointer;
+  scroll-snap-align: start;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.swatch[aria-current="true"] {
+  box-shadow: inset 0 0 0 6px var(--outline), 0 12px 28px rgba(21, 0, 7, 0.28);
+}
+
+.swatch::after {
+  content: attr(data-hex);
+  position: absolute;
+  left: 10px;
+  bottom: 9px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 680px) {
+  .sensor-panel {
+    grid-template-rows: auto auto 1fr auto auto auto;
+  }
+
+  .top-bar {
+    align-items: flex-start;
+  }
+
+  .fallback-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .fallback-controls label {
+    grid-template-columns: 76px 1fr;
+    align-items: center;
+  }
+
+  .sample-card {
+    width: min(78vw, 390px);
+    min-width: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .fallback-controls {
+    display: none;
+  }
+}

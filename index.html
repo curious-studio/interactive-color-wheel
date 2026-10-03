@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#cf244c">
+    <title>Inside Color Wheel</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell" aria-labelledby="app-title">
+      <section class="sensor-panel" aria-label="Live color selector">
+        <div class="ambient-wheel" aria-hidden="true"></div>
+
+        <div class="top-bar">
+          <div>
+            <p class="eyebrow">Inside Color Wheel</p>
+            <h1 id="app-title">Face a hue. Tilt into a tint.</h1>
+          </div>
+          <button class="icon-button" id="calibrateButton" type="button" aria-label="Calibrate current direction as zero degrees">
+            <span aria-hidden="true">⌖</span>
+          </button>
+        </div>
+
+        <div class="readout-strip" aria-live="polite">
+          <span><strong id="hueValue">0°</strong> hue</span>
+          <span><strong id="lightValue">50%</strong> light</span>
+          <span><strong id="satValue">88%</strong> saturation</span>
+        </div>
+
+        <div class="live-zone">
+          <div class="sample-card" id="sampleCard" role="img" aria-label="Current selected color"></div>
+          <button class="add-button" id="addSwatchButton" type="button">Add Swatch</button>
+          <p class="status-line" id="statusLine">Use the controls below, or enable motion sensors on a phone.</p>
+        </div>
+
+        <div class="action-row">
+          <button class="sensor-button" id="sensorButton" type="button">Enable Sensors</button>
+          <button class="ghost-button" id="copyButton" type="button">Copy Hex</button>
+        </div>
+
+        <section class="swatch-tray" aria-label="Saved swatches">
+          <div class="swatches" id="swatches"></div>
+        </section>
+
+        <form class="fallback-controls" aria-label="Manual color controls">
+          <label>
+            <span>Hue</span>
+            <input id="hueControl" type="range" min="0" max="359" value="0">
+          </label>
+          <label>
+            <span>Tint</span>
+            <input id="tintControl" type="range" min="-45" max="45" value="0">
+          </label>
+          <label>
+            <span>Saturation</span>
+            <input id="satControl" type="range" min="35" max="100" value="88">
+          </label>
+        </form>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
