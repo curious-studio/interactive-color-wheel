@@ -13,13 +13,23 @@ const calibrateButton = document.getElementById("calibrateButton");
 const copyButton = document.getElementById("copyButton");
 const swatchesElement = document.getElementById("swatches");
 const MAX_SWATCHES = 4;
+const TRADITIONAL_WHEEL = [
+  { wheel: 0, hsl: 0 },
+  { wheel: 60, hsl: 30 },
+  { wheel: 120, hsl: 60 },
+  { wheel: 180, hsl: 120 },
+  { wheel: 240, hsl: 240 },
+  { wheel: 300, hsl: 285 },
+  { wheel: 360, hsl: 360 }
+];
 
 function makeId() {
   return globalThis.crypto?.randomUUID?.() ?? `swatch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 const state = {
-  hue: 350,
+  wheelHue: 0,
+  hue: 0,
   saturation: 88,
   lightness: 50,
   tintOffset: 0,
@@ -28,7 +38,7 @@ const state = {
   selectedSwatchId: null,
   sensorsEnabled: false,
   swatches: [
-    { id: makeId(), hue: 350, saturation: 88, lightness: 50 }
+    { id: makeId(), wheelHue: 0, hue: 0, saturation: 88, lightness: 50 }
   ]
 };
 
@@ -52,6 +62,16 @@ function clamp(value, min, max) {
 
 function wrapHue(value) {
   return ((Math.round(value) % 360) + 360) % 360;
+}
+
+function traditionalWheelToHslHue(wheelHue) {
+  const normalizedHue = ((Number(wheelHue) % 360) + 360) % 360;
+  const upperIndex = TRADITIONAL_WHEEL.findIndex((anchor) => normalizedHue <= anchor.wheel);
+  const upper = TRADITIONAL_WHEEL[Math.max(1, upperIndex)];
+  const lower = TRADITIONAL_WHEEL[Math.max(0, upperIndex - 1)];
+  const progress = (normalizedHue - lower.wheel) / (upper.wheel - lower.wheel);
+
+  return wrapHue(lower.hsl + (upper.hsl - lower.hsl) * progress);
 }
 
 function hslToHex(hue, saturation, lightness) {
@@ -81,24 +101,29 @@ function currentHex() {
 }
 
 function colorLabel(color = state) {
-  return `HSL ${wrapHue(color.hue)} degrees, ${Math.round(color.saturation)} percent saturation, ${Math.round(color.lightness)} percent lightness`;
+  return `Traditional wheel ${wrapHue(color.wheelHue ?? state.wheelHue)} degrees, ${Math.round(color.saturation)} percent saturation, ${Math.round(color.lightness)} percent lightness`;
 }
 
 function setColor(next) {
-  state.hue = wrapHue(next.hue ?? state.hue);
+  state.wheelHue = wrapHue(next.wheelHue ?? state.wheelHue);
+  state.hue = traditionalWheelToHslHue(state.wheelHue);
   state.saturation = clamp(Math.round(next.saturation ?? state.saturation), 35, 100);
   state.lightness = clamp(Math.round(next.lightness ?? state.lightness), 0, 100);
 
   const hex = currentHex();
   root.style.setProperty("--hue", state.hue);
+  root.style.setProperty("--hue-left", traditionalWheelToHslHue(state.wheelHue - 60));
+  root.style.setProperty("--hue-mid-left", traditionalWheelToHslHue(state.wheelHue - 30));
+  root.style.setProperty("--hue-mid-right", traditionalWheelToHslHue(state.wheelHue + 30));
+  root.style.setProperty("--hue-right", traditionalWheelToHslHue(state.wheelHue + 60));
   root.style.setProperty("--sat", `${state.saturation}%`);
   root.style.setProperty("--light", `${state.lightness}%`);
   root.style.setProperty("--selected-hex", hex);
   sampleCard.setAttribute("aria-label", `Current selected color ${hex}, ${colorLabel()}`);
-  hueValue.textContent = `${state.hue}°`;
+  hueValue.textContent = `${state.wheelHue}°`;
   lightValue.textContent = `${state.lightness}%`;
   satValue.textContent = `${state.saturation}%`;
-  hueControl.value = state.hue;
+  hueControl.value = state.wheelHue;
   tintControl.value = state.tintOffset;
   satControl.value = state.saturation;
 }
@@ -304,14 +329,14 @@ function handleOrientation(event) {
   const heading = headingFromEvent(event);
   const tiltFrontBack = typeof event.beta === "number" ? event.beta : 0;
   const tiltSide = typeof event.gamma === "number" ? event.gamma : 0;
-  const hue = heading === null ? state.hue : heading - state.headingOffset;
+  const wheelHue = heading === null ? state.wheelHue : heading - state.headingOffset;
   state.lastHeading = heading ?? state.lastHeading;
   const lightness = clamp(((tiltFrontBack - 60) / 60) * 100, 0, 100);
   const saturation = clamp(92 - Math.abs(tiltSide) * 0.85, 42, 100);
 
   state.tintOffset = Math.round(lightness - 50);
   setColor({
-    hue,
+    wheelHue,
     saturation,
     lightness
   });
@@ -346,6 +371,7 @@ async function enableSensors() {
 function addSwatch() {
   const swatch = {
     id: makeId(),
+    wheelHue: state.wheelHue,
     hue: state.hue,
     saturation: state.saturation,
     lightness: state.lightness
@@ -369,7 +395,7 @@ async function copyHex() {
 }
 
 hueControl.addEventListener("input", () => {
-  setColor({ hue: Number(hueControl.value) });
+  setColor({ wheelHue: Number(hueControl.value) });
   renderSwatches();
 });
 

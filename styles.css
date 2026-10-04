@@ -1,10 +1,14 @@
 :root {
   color-scheme: dark;
-  --hue: 350;
+  --hue: 0;
+  --hue-left: 285;
+  --hue-mid-left: 323;
+  --hue-mid-right: 15;
+  --hue-right: 30;
   --sat: 88%;
   --light: 50%;
   --selected: hsl(var(--hue) var(--sat) var(--light));
-  --selected-hex: #d7194b;
+  --selected-hex: #f00f0f;
   --ink: #fffaf7;
   --ink-muted: rgba(255, 250, 247, 0.76);
   --glass: rgba(20, 7, 13, 0.24);
@@ -64,11 +68,11 @@ input {
     ),
     linear-gradient(
       to right,
-      hsl(calc(var(--hue) - 52) var(--sat) var(--light)) 0%,
-      hsl(calc(var(--hue) - 24) var(--sat) var(--light)) 24%,
+      hsl(var(--hue-left) var(--sat) var(--light)) 0%,
+      hsl(var(--hue-mid-left) var(--sat) var(--light)) 24%,
       hsl(var(--hue) var(--sat) var(--light)) 50%,
-      hsl(calc(var(--hue) + 24) var(--sat) var(--light)) 76%,
-      hsl(calc(var(--hue) + 52) var(--sat) var(--light)) 100%
+      hsl(var(--hue-mid-right) var(--sat) var(--light)) 76%,
+      hsl(var(--hue-right) var(--sat) var(--light)) 100%
     );
   filter: saturate(1.18);
   transform: scale(1.08);
