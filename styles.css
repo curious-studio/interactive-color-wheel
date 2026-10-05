@@ -284,7 +284,8 @@ h1 {
 }
 
 .swatch-slot:first-child,
-.swatch-slot:first-child .swatch {
+.swatch-slot:first-child .swatch,
+.swatch-slot:first-child::before {
   border-radius: 22px 0 0 22px;
 }
 
