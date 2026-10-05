@@ -53,7 +53,8 @@ const swatchGesture = {
   currentY: 0,
   longPressTimer: null,
   isEditing: false,
-  didDrag: false
+  didDrag: false,
+  deleteOnTap: false
 };
 
 function clamp(value, min, max) {
@@ -150,10 +151,18 @@ function renderSwatches(selectedHex = currentHex()) {
     button.style.setProperty("--swatch-color", hex);
     button.dataset.hex = hex.toLowerCase();
     button.setAttribute("aria-label", `Use swatch ${hex}, ${colorLabel(swatch)}`);
-    button.setAttribute("aria-current", swatch.id === state.selectedSwatchId || hex === selectedHex ? "true" : "false");
+    const isSelected = swatch.id === state.selectedSwatchId || hex === selectedHex;
+    button.setAttribute("aria-current", isSelected ? "true" : "false");
+
     button.addEventListener("click", (event) => {
       if (swatchGesture.didDrag) {
         event.preventDefault();
+        return;
+      }
+
+      if (isSelected && isDeleteCueClick(event)) {
+        event.preventDefault();
+        deleteSwatch(swatch.id);
         return;
       }
 
@@ -165,10 +174,55 @@ function renderSwatches(selectedHex = currentHex()) {
     });
     button.addEventListener("pointerdown", startSwatchGesture);
     slot.append(button);
+
+    if (isSelected) {
+      const deleteCue = document.createElement("button");
+      deleteCue.className = "swatch-delete-cue";
+      deleteCue.type = "button";
+      deleteCue.setAttribute("aria-label", `Delete swatch ${hex}`);
+      deleteCue.textContent = "x";
+      deleteCue.addEventListener("click", (event) => {
+        event.stopPropagation();
+        deleteSwatch(swatch.id);
+      });
+      slot.append(deleteCue);
+    }
+
     return slot;
   });
 
   swatchesElement.replaceChildren(...slots);
+}
+
+function isDeleteCueClick(event) {
+  if (event.target.closest(".swatch-delete-cue")) {
+    return true;
+  }
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  const hitSize = 48;
+
+  return event.clientX >= rect.right - hitSize && event.clientY <= rect.top + hitSize;
+}
+
+function deleteSwatch(swatchId) {
+  const deletedIndex = state.swatches.findIndex((swatch) => swatch.id === swatchId);
+
+  if (deletedIndex < 0) {
+    return;
+  }
+
+  state.swatches = state.swatches.filter((swatch) => swatch.id !== swatchId);
+  const nextSelection = state.swatches[Math.min(deletedIndex, state.swatches.length - 1)] ?? null;
+  state.selectedSwatchId = nextSelection?.id ?? null;
+
+  if (nextSelection) {
+    state.tintOffset = nextSelection.lightness - 50;
+    setColor(nextSelection);
+  }
+
+  renderSwatches();
+  statusLine.textContent = nextSelection ? "Swatch deleted." : "Swatch deleted. Add a new swatch when ready.";
 }
 
 function selectedSwatchIndex() {
@@ -199,6 +253,7 @@ function startSwatchGesture(event) {
   swatchGesture.currentY = event.clientY;
   swatchGesture.isEditing = false;
   swatchGesture.didDrag = false;
+  swatchGesture.deleteOnTap = swatchGesture.id === state.selectedSwatchId && isDeleteCueClick(event);
   state.selectedSwatchId = swatchGesture.id;
 
   swatchGesture.longPressTimer = window.setTimeout(() => {
@@ -268,15 +323,21 @@ function reorderDraggedSwatch(pointerX) {
 function endSwatchGesture(event) {
   clearTimeout(swatchGesture.longPressTimer);
 
+  if (!swatchGesture.isEditing && swatchGesture.deleteOnTap) {
+    const deletedId = swatchGesture.id;
+    finishSwatchGesture();
+    deleteSwatch(deletedId);
+    return;
+  }
+
   if (swatchGesture.isEditing) {
     const dy = event.clientY - swatchGesture.startY;
 
-    if (dy < -64 && state.swatches.length > 1) {
-      state.swatches = state.swatches.filter((swatch) => swatch.id !== swatchGesture.id);
-      state.selectedSwatchId = null;
-      statusLine.textContent = "Swatch deleted.";
-    } else if (dy < -64) {
-      statusLine.textContent = "Keep at least one swatch in the tray.";
+    if (dy < -64) {
+      const deletedId = swatchGesture.id;
+      finishSwatchGesture();
+      deleteSwatch(deletedId);
+      return;
     } else {
       statusLine.textContent = "Swatches rearranged.";
     }
@@ -307,6 +368,7 @@ function finishSwatchGesture() {
   swatchGesture.index = -1;
   swatchGesture.pointerId = null;
   swatchGesture.isEditing = false;
+  swatchGesture.deleteOnTap = false;
 
   window.setTimeout(() => {
     swatchGesture.didDrag = false;
