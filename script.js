@@ -108,7 +108,7 @@ function colorLabel(color = state) {
 function setColor(next) {
   state.wheelHue = wrapHue(next.wheelHue ?? state.wheelHue);
   state.hue = traditionalWheelToHslHue(state.wheelHue);
-  state.saturation = clamp(Math.round(next.saturation ?? state.saturation), 35, 100);
+  state.saturation = clamp(Math.round(next.saturation ?? state.saturation), 0, 100);
   state.lightness = clamp(Math.round(next.lightness ?? state.lightness), 0, 100);
 
   const hex = currentHex();
@@ -394,7 +394,9 @@ function handleOrientation(event) {
   const wheelHue = heading === null ? state.wheelHue : heading - state.headingOffset;
   state.lastHeading = heading ?? state.lastHeading;
   const lightness = clamp(((tiltFrontBack - 60) / 60) * 100, 0, 100);
-  const saturation = clamp(92 - Math.abs(tiltSide) * 0.85, 42, 100);
+  const saturation = tiltSide < 0
+    ? clamp(75 + tiltSide * 1.875, 0, 75)
+    : clamp(75 + tiltSide * 0.625, 75, 100);
 
   state.tintOffset = Math.round(lightness - 50);
   setColor({
