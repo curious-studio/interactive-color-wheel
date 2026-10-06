@@ -6,6 +6,9 @@
   --hue-mid-right: 15;
   --hue-right: 30;
   --compass-rotation: 0deg;
+  --compass-shift: 0px;
+  --compass-shift-soft: 0px;
+  --compass-shift-faint: 0px;
   --sat: 88%;
   --light: 50%;
   --selected: hsl(var(--hue) var(--sat) var(--light));
@@ -88,17 +91,17 @@ input {
     radial-gradient(circle, rgba(255, 255, 255, 0.34) 0 2px, transparent 3px),
     radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 1px, transparent 1px);
   background-position:
-    11px 23px,
-    53px 79px,
-    137px 41px;
+    calc(11px + var(--compass-shift)) 23px,
+    calc(53px + var(--compass-shift-soft)) 79px,
+    calc(137px + var(--compass-shift-faint)) 41px;
   background-size:
     146px 158px,
     211px 193px,
     283px 241px;
   opacity: 0.42;
-  transform: rotate(calc(var(--compass-rotation) * -1)) scale(1.22);
+  transform: scale(1.22);
   transform-origin: center;
-  transition: transform 120ms linear;
+  transition: background-position 120ms linear;
 }
 
 .ambient-wheel::after {

@@ -35,6 +35,7 @@ const state = {
   tintOffset: 0,
   headingOffset: 0,
   lastHeading: 0,
+  motionSideTilt: null,
   selectedSwatchId: null,
   sensorsEnabled: false,
   swatches: [
@@ -118,6 +119,9 @@ function setColor(next) {
   root.style.setProperty("--hue-mid-right", traditionalWheelToHslHue(state.wheelHue + 30));
   root.style.setProperty("--hue-right", traditionalWheelToHslHue(state.wheelHue + 60));
   root.style.setProperty("--compass-rotation", `${state.wheelHue}deg`);
+  root.style.setProperty("--compass-shift", `${state.wheelHue * -1.4}px`);
+  root.style.setProperty("--compass-shift-soft", `${state.wheelHue * -1}px`);
+  root.style.setProperty("--compass-shift-faint", `${state.wheelHue * -0.67}px`);
   root.style.setProperty("--sat", `${state.saturation}%`);
   root.style.setProperty("--light", `${state.lightness}%`);
   root.style.setProperty("--selected-hex", hex);
@@ -391,7 +395,7 @@ function headingFromEvent(event) {
 function handleOrientation(event) {
   const heading = headingFromEvent(event);
   const tiltFrontBack = typeof event.beta === "number" ? event.beta : 0;
-  const tiltSide = typeof event.gamma === "number" ? event.gamma : 0;
+  const tiltSide = state.motionSideTilt ?? (typeof event.gamma === "number" ? event.gamma : 0);
   const wheelHue = heading === null ? state.wheelHue : heading - state.headingOffset;
   state.lastHeading = heading ?? state.lastHeading;
   const lightness = clamp(((tiltFrontBack - 60) / 60) * 100, 0, 100);
@@ -409,6 +413,16 @@ function handleOrientation(event) {
   statusLine.textContent = "Compass is steering hue. Upright is 50% light; tilt down to darken and up to brighten.";
 }
 
+function handleMotion(event) {
+  const gravityX = event.accelerationIncludingGravity?.x;
+
+  if (typeof gravityX !== "number") {
+    return;
+  }
+
+  state.motionSideTilt = Math.asin(clamp(gravityX / 9.81, -1, 1)) * (180 / Math.PI);
+}
+
 async function enableSensors() {
   try {
     if (typeof DeviceOrientationEvent === "undefined") {
@@ -422,6 +436,17 @@ async function enableSensors() {
         statusLine.textContent = "Motion access was not granted. Manual controls are ready.";
         return;
       }
+    }
+
+    let motionAllowed = typeof DeviceMotionEvent !== "undefined";
+
+    if (motionAllowed && typeof DeviceMotionEvent.requestPermission === "function") {
+      const permission = await DeviceMotionEvent.requestPermission();
+      motionAllowed = permission === "granted";
+    }
+
+    if (motionAllowed) {
+      window.addEventListener("devicemotion", handleMotion, true);
     }
 
     window.addEventListener("deviceorientation", handleOrientation, true);
