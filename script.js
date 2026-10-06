@@ -396,7 +396,7 @@ function handleOrientation(event) {
   state.lastHeading = heading ?? state.lastHeading;
   const lightness = clamp(((tiltFrontBack - 60) / 60) * 100, 0, 100);
   const saturation = tiltSide < 0
-    ? clamp(75 + tiltSide * 1.875, 0, 75)
+    ? clamp(75 + tiltSide * 1.25, 0, 75)
     : clamp(75 + tiltSide * 0.625, 75, 100);
 
   state.tintOffset = Math.round(lightness - 50);
