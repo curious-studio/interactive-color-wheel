@@ -156,7 +156,7 @@ function renderSwatches(selectedHex = currentHex()) {
     button.style.setProperty("--swatch-color", hex);
     button.dataset.hex = hex.toLowerCase();
     button.setAttribute("aria-label", `Use swatch ${hex}, ${colorLabel(swatch)}`);
-    const isSelected = swatch.id === state.selectedSwatchId || hex === selectedHex;
+    const isSelected = swatch.id === state.selectedSwatchId;
     button.setAttribute("aria-current", isSelected ? "true" : "false");
 
     button.addEventListener("click", (event) => {
@@ -218,16 +218,11 @@ function deleteSwatch(swatchId) {
   }
 
   state.swatches = state.swatches.filter((swatch) => swatch.id !== swatchId);
-  const nextSelection = state.swatches[Math.min(deletedIndex, state.swatches.length - 1)] ?? null;
-  state.selectedSwatchId = nextSelection?.id ?? null;
-
-  if (nextSelection) {
-    state.tintOffset = nextSelection.lightness - 50;
-    setColor(nextSelection);
-  }
+  const hasRemainingSwatches = state.swatches.length > 0;
+  state.selectedSwatchId = null;
 
   renderSwatches();
-  statusLine.textContent = nextSelection ? "Swatch deleted." : "Swatch deleted. Add a new swatch when ready.";
+  statusLine.textContent = hasRemainingSwatches ? "Swatch deleted." : "Swatch deleted. Add a new swatch when ready.";
 }
 
 function selectedSwatchIndex() {
@@ -410,7 +405,7 @@ function handleOrientation(event) {
     lightness
   });
 
-  statusLine.textContent = "Compass is steering hue. Upright is 50% light; tilt down to darken and up to brighten.";
+  statusLine.textContent = "Navigate around the color wheel by turning around. Tilt up and down for light and dark, and dial up or down saturation by leaning your phone left and right.";
 }
 
 function handleMotion(event) {
