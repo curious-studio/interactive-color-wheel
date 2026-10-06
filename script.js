@@ -13,6 +13,11 @@ const calibrateButton = document.getElementById("calibrateButton");
 const copyButton = document.getElementById("copyButton");
 const swatchesElement = document.getElementById("swatches");
 const MAX_SWATCHES = 4;
+const SENSOR_SMOOTHING = 0.14;
+const MOTION_SMOOTHING = 0.12;
+const LIGHT_DARK_TILT = 5;
+const LIGHT_MID_TILT = 50;
+const LIGHT_BRIGHT_TILT = 105;
 const TRADITIONAL_WHEEL = [
   { wheel: 0, hsl: 0 },
   { wheel: 60, hsl: 30 },
@@ -36,6 +41,9 @@ const state = {
   headingOffset: 0,
   lastHeading: 0,
   motionSideTilt: null,
+  smoothedWheelHue: null,
+  smoothedFrontBackTilt: null,
+  smoothedSideTilt: null,
   selectedSwatchId: null,
   sensorsEnabled: false,
   swatches: [
@@ -64,6 +72,29 @@ function clamp(value, min, max) {
 
 function wrapHue(value) {
   return ((Math.round(value) % 360) + 360) % 360;
+}
+
+function smoothValue(previous, next, amount) {
+  return previous === null ? next : previous + (next - previous) * amount;
+}
+
+function smoothHue(previous, next, amount) {
+  if (previous === null) {
+    return ((next % 360) + 360) % 360;
+  }
+
+  const delta = ((((next - previous) % 360) + 540) % 360) - 180;
+  return ((previous + delta * amount) % 360 + 360) % 360;
+}
+
+function lightnessFromTilt(tiltFrontBack) {
+  if (tiltFrontBack <= LIGHT_MID_TILT) {
+    const progress = (tiltFrontBack - LIGHT_DARK_TILT) / (LIGHT_MID_TILT - LIGHT_DARK_TILT);
+    return clamp(progress * 50, 0, 50);
+  }
+
+  const progress = (tiltFrontBack - LIGHT_MID_TILT) / (LIGHT_BRIGHT_TILT - LIGHT_MID_TILT);
+  return clamp(50 + progress * 50, 50, 100);
 }
 
 function traditionalWheelToHslHue(wheelHue) {
@@ -208,6 +239,15 @@ function isDeleteCueClick(event) {
   const hitSize = 48;
 
   return event.clientX >= rect.right - hitSize && event.clientY <= rect.top + hitSize;
+}
+
+function clearSwatchSelectionOnOutsideClick(event) {
+  if (!state.selectedSwatchId || event.target.closest(".swatch-slot")) {
+    return;
+  }
+
+  state.selectedSwatchId = null;
+  renderSwatches();
 }
 
 function deleteSwatch(swatchId) {
@@ -389,11 +429,18 @@ function headingFromEvent(event) {
 
 function handleOrientation(event) {
   const heading = headingFromEvent(event);
-  const tiltFrontBack = typeof event.beta === "number" ? event.beta : 0;
-  const tiltSide = state.motionSideTilt ?? (typeof event.gamma === "number" ? event.gamma : 0);
-  const wheelHue = heading === null ? state.wheelHue : heading - state.headingOffset;
+  const rawFrontBackTilt = typeof event.beta === "number" ? event.beta : state.smoothedFrontBackTilt ?? LIGHT_MID_TILT;
+  const rawSideTilt = state.motionSideTilt ?? (typeof event.gamma === "number" ? event.gamma : state.smoothedSideTilt ?? 0);
+  const rawWheelHue = heading === null ? state.smoothedWheelHue ?? state.wheelHue : heading - state.headingOffset;
+  const wheelHue = smoothHue(state.smoothedWheelHue, rawWheelHue, SENSOR_SMOOTHING);
+  const tiltFrontBack = smoothValue(state.smoothedFrontBackTilt, rawFrontBackTilt, SENSOR_SMOOTHING);
+  const tiltSide = smoothValue(state.smoothedSideTilt, rawSideTilt, SENSOR_SMOOTHING);
+
+  state.smoothedWheelHue = wheelHue;
+  state.smoothedFrontBackTilt = tiltFrontBack;
+  state.smoothedSideTilt = tiltSide;
   state.lastHeading = heading ?? state.lastHeading;
-  const lightness = clamp(((tiltFrontBack - 60) / 60) * 100, 0, 100);
+  const lightness = lightnessFromTilt(tiltFrontBack);
   const saturation = tiltSide < 0
     ? clamp(75 + tiltSide * 1.25, 0, 75)
     : clamp(75 + tiltSide * 0.625, 75, 100);
@@ -415,7 +462,8 @@ function handleMotion(event) {
     return;
   }
 
-  state.motionSideTilt = Math.asin(clamp(gravityX / 9.81, -1, 1)) * (180 / Math.PI);
+  const sideTilt = Math.asin(clamp(gravityX / 9.81, -1, 1)) * (180 / Math.PI);
+  state.motionSideTilt = smoothValue(state.motionSideTilt, sideTilt, MOTION_SMOOTHING);
 }
 
 async function enableSensors() {
@@ -495,6 +543,7 @@ satControl.addEventListener("input", () => {
   renderSwatches();
 });
 
+document.addEventListener("click", clearSwatchSelectionOnOutsideClick, true);
 sensorButton.addEventListener("click", enableSensors);
 addSwatchButton.addEventListener("click", addSwatch);
 copyButton.addEventListener("click", copyHex);

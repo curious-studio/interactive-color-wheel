@@ -101,7 +101,7 @@ input {
   opacity: 0.42;
   transform: scale(1.22);
   transform-origin: center;
-  transition: background-position 120ms linear;
+  transition: background-position 240ms linear;
 }
 
 .ambient-wheel::after {
