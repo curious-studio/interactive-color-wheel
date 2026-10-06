@@ -5,6 +5,7 @@
   --hue-mid-left: 323;
   --hue-mid-right: 15;
   --hue-right: 30;
+  --compass-rotation: 0deg;
   --sat: 88%;
   --light: 50%;
   --selected: hsl(var(--hue) var(--sat) var(--light));
@@ -76,6 +77,28 @@ input {
     );
   filter: saturate(1.18);
   transform: scale(1.08);
+}
+
+.ambient-wheel::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.52) 0 1px, transparent 1.4px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.34) 0 0.8px, transparent 1.2px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 0.7px, transparent 1.1px);
+  background-position:
+    11px 23px,
+    63px 89px,
+    137px 41px;
+  background-size:
+    146px 158px,
+    211px 193px,
+    283px 241px;
+  opacity: 0.42;
+  transform: rotate(calc(var(--compass-rotation) * -1)) scale(1.22);
+  transform-origin: center;
+  transition: transform 120ms linear;
 }
 
 .ambient-wheel::after {

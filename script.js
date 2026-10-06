@@ -117,6 +117,7 @@ function setColor(next) {
   root.style.setProperty("--hue-mid-left", traditionalWheelToHslHue(state.wheelHue - 30));
   root.style.setProperty("--hue-mid-right", traditionalWheelToHslHue(state.wheelHue + 30));
   root.style.setProperty("--hue-right", traditionalWheelToHslHue(state.wheelHue + 60));
+  root.style.setProperty("--compass-rotation", `${state.wheelHue}deg`);
   root.style.setProperty("--sat", `${state.saturation}%`);
   root.style.setProperty("--light", `${state.lightness}%`);
   root.style.setProperty("--selected-hex", hex);
