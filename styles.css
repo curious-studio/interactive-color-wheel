@@ -84,12 +84,12 @@ input {
   position: absolute;
   inset: -12%;
   background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.52) 0 1px, transparent 1.4px),
-    radial-gradient(circle, rgba(255, 255, 255, 0.34) 0 0.8px, transparent 1.2px),
-    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 0.7px, transparent 1.1px);
+    radial-gradient(circle, rgba(255, 255, 255, 0.52) 0 2px, transparent 4px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.34) 0 2px, transparent 3px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 1px, transparent 1px);
   background-position:
     11px 23px,
-    63px 89px,
+    53px 79px,
     137px 41px;
   background-size:
     146px 158px,
@@ -372,7 +372,7 @@ h1 {
   background: rgba(255, 255, 255, 0.88);
   color: rgba(45, 0, 12, 0.72);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 500;
   line-height: 1;
   text-transform: lowercase;
