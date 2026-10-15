@@ -12,7 +12,8 @@ const sensorButton = document.getElementById("sensorButton");
 const calibrateButton = document.getElementById("calibrateButton");
 const copyButton = document.getElementById("copyButton");
 const swatchesElement = document.getElementById("swatches");
-const MAX_SWATCHES = 4;
+const MIN_SWATCH_SLOTS = 3;
+const MAX_SWATCHES = 6;
 const SENSOR_SMOOTHING = 0.14;
 const MOTION_SMOOTHING = 0.12;
 const LIGHT_DARK_TILT = 5;
@@ -166,7 +167,11 @@ function setColor(next) {
 }
 
 function renderSwatches(selectedHex = currentHex()) {
-  const slots = Array.from({ length: MAX_SWATCHES }, (_, index) => {
+  const slotCount = clamp(Math.max(MIN_SWATCH_SLOTS, state.swatches.length), MIN_SWATCH_SLOTS, MAX_SWATCHES);
+  addSwatchButton.textContent = state.selectedSwatchId ? "Replace" : "Add Swatch";
+  swatchesElement.dataset.count = String(slotCount);
+
+  const slots = Array.from({ length: slotCount }, (_, index) => {
     const slot = document.createElement("div");
     const swatch = state.swatches[index];
     slot.className = "swatch-slot";
@@ -242,7 +247,7 @@ function isDeleteCueClick(event) {
 }
 
 function clearSwatchSelectionOnOutsideClick(event) {
-  if (!state.selectedSwatchId || event.target.closest(".swatch-slot")) {
+  if (!state.selectedSwatchId || event.target.closest(".swatch-slot, #addSwatchButton")) {
     return;
   }
 
@@ -502,8 +507,9 @@ async function enableSensors() {
 }
 
 function addSwatch() {
+  const selectedIndex = state.swatches.findIndex((swatch) => swatch.id === state.selectedSwatchId);
   const swatch = {
-    id: makeId(),
+    id: selectedIndex >= 0 ? state.swatches[selectedIndex].id : makeId(),
     wheelHue: state.wheelHue,
     hue: state.hue,
     saturation: state.saturation,
@@ -511,20 +517,111 @@ function addSwatch() {
   };
   const hex = currentHex();
   state.selectedSwatchId = swatch.id;
+
+  if (selectedIndex >= 0) {
+    state.swatches = state.swatches.map((saved, index) => index === selectedIndex ? swatch : saved);
+    renderSwatches(hex);
+    statusLine.textContent = `${hex} replaced in your swatches.`;
+    return;
+  }
+
   state.swatches = [swatch, ...state.swatches.filter((saved) => hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, MAX_SWATCHES);
   renderSwatches(hex);
   statusLine.textContent = `${hex} added to your swatches.`;
 }
 
-async function copyHex() {
-  const hex = currentHex();
+function roundedRectPath(context, x, y, width, height, radius) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
 
-  try {
-    await navigator.clipboard.writeText(hex);
-    statusLine.textContent = `${hex} copied.`;
-  } catch (error) {
-    statusLine.textContent = hex;
+  context.beginPath();
+  context.moveTo(x + safeRadius, y);
+  context.arcTo(x + width, y, x + width, y + height, safeRadius);
+  context.arcTo(x + width, y + height, x, y + height, safeRadius);
+  context.arcTo(x, y + height, x, y, safeRadius);
+  context.arcTo(x, y, x + width, y, safeRadius);
+  context.closePath();
+}
+
+function drawPaletteCanvas() {
+  const slotCount = clamp(Math.max(MIN_SWATCH_SLOTS, state.swatches.length), MIN_SWATCH_SLOTS, MAX_SWATCHES);
+  const columnRatios = slotCount === 3
+    ? [2.35, 1, 1.08]
+    : slotCount === 4
+      ? [2.35, 1, 1, 1.08]
+      : slotCount === 5
+        ? [1.8, 1, 1, 1, 1.08]
+        : Array.from({ length: slotCount }, () => 1);
+  const canvasWidth = 1200;
+  const canvasHeight = 300;
+  const scale = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  const canvas = document.createElement("canvas");
+  const ratioTotal = columnRatios.reduce((total, ratio) => total + ratio, 0);
+  const slotWidths = columnRatios.map((ratio) => canvasWidth * ratio / ratioTotal);
+
+  canvas.width = canvasWidth * scale;
+  canvas.height = canvasHeight * scale;
+  canvas.style.width = `${canvasWidth}px`;
+  canvas.style.height = `${canvasHeight}px`;
+
+  const context = canvas.getContext("2d");
+  context.scale(scale, scale);
+  context.fillStyle = "#f5f2f3";
+  context.fillRect(0, 0, canvasWidth, canvasHeight);
+  context.save();
+  roundedRectPath(context, 0, 0, canvasWidth, canvasHeight, 28);
+  context.clip();
+
+  let x = 0;
+  state.swatches.forEach((swatch, index) => {
+    const width = slotWidths[index];
+    context.fillStyle = hslToHex(swatch.hue, swatch.saturation, swatch.lightness);
+    context.fillRect(x, 0, width, canvasHeight);
+    context.fillStyle = "rgba(255, 255, 255, 0.5)";
+    context.font = "500 18px sans-serif";
+    context.letterSpacing = "1px";
+    context.fillText(hslToHex(swatch.hue, swatch.saturation, swatch.lightness).toLowerCase(), x + 18, canvasHeight - 20);
+    x += width;
+  });
+
+  for (let index = state.swatches.length; index < slotCount; index += 1) {
+    const width = slotWidths[index];
+    context.fillStyle = "#f5f2f3";
+    context.fillRect(x, 0, width, canvasHeight);
+    x += width;
   }
+
+  context.restore();
+
+  return canvas;
+}
+
+function paletteFilename() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}${pad(now.getMinutes())}`;
+
+  return `ColorCompass-${date}-${time}.png`;
+}
+
+function downloadPalette() {
+  const canvas = drawPaletteCanvas();
+
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      statusLine.textContent = "Palette PNG could not be created here.";
+      return;
+    }
+
+    const downloadLink = document.createElement("a");
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = paletteFilename();
+    document.body.append(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+    window.setTimeout(() => URL.revokeObjectURL(downloadLink.href), 1000);
+    statusLine.textContent = "Saved";
+  }, "image/png");
 }
 
 hueControl.addEventListener("input", () => {
@@ -546,7 +643,7 @@ satControl.addEventListener("input", () => {
 document.addEventListener("click", clearSwatchSelectionOnOutsideClick, true);
 sensorButton.addEventListener("click", enableSensors);
 addSwatchButton.addEventListener("click", addSwatch);
-copyButton.addEventListener("click", copyHex);
+copyButton.addEventListener("click", downloadPalette);
 calibrateButton.addEventListener("click", () => {
   state.headingOffset = state.lastHeading;
   statusLine.textContent = "Current direction calibrated as the start of the wheel.";

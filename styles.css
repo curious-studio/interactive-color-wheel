@@ -101,7 +101,7 @@ input {
   opacity: 0.42;
   transform: scale(1.22);
   transform-origin: center;
-  transition: background-position 240ms linear;
+  transition: none;
 }
 
 .ambient-wheel::after {
@@ -207,9 +207,9 @@ h1 {
 }
 
 .sample-card {
-  width: min(56vw, 390px);
+  width: min(42vw, 292px);
   min-width: 230px;
-  aspect-ratio: 1.45;
+  aspect-ratio: 1.2;
   border: clamp(6px, 1.4vw, 12px) solid var(--outline);
   border-radius: clamp(24px, 5vw, 44px);
   background:
@@ -294,12 +294,24 @@ h1 {
 
 .swatches {
   display: grid;
-  grid-template-columns: 2.35fr 1fr 1fr 1.08fr;
+  grid-template-columns: 2.35fr 1fr 1.08fr;
   gap: 0;
   overflow-x: auto;
   padding: 4px 0 8px;
   scroll-snap-type: x proximity;
   touch-action: pan-x;
+}
+
+.swatches[data-count="4"] {
+  grid-template-columns: 2.35fr 1fr 1fr 1.08fr;
+}
+
+.swatches[data-count="5"] {
+  grid-template-columns: 1.8fr 1fr 1fr 1fr 1.08fr;
+}
+
+.swatches[data-count="6"] {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .swatch-slot {
@@ -446,7 +458,7 @@ h1 {
   }
 
   .sample-card {
-    width: min(78vw, 390px);
+    width: min(58.5vw, 292px);
     min-width: 0;
   }
 }
