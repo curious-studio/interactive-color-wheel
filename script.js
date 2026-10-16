@@ -8,6 +8,8 @@ const hueControl = document.getElementById("hueControl");
 const tintControl = document.getElementById("tintControl");
 const satControl = document.getElementById("satControl");
 const addSwatchButton = document.getElementById("addSwatchButton");
+const replaceSwatchButton = document.getElementById("replaceSwatchButton");
+const swatchActions = document.getElementById("swatchActions");
 const sensorButton = document.getElementById("sensorButton");
 const calibrateButton = document.getElementById("calibrateButton");
 const copyButton = document.getElementById("copyButton");
@@ -46,6 +48,7 @@ const state = {
   smoothedFrontBackTilt: null,
   smoothedSideTilt: null,
   selectedSwatchId: null,
+  hasAddedSwatch: false,
   sensorsEnabled: false,
   swatches: [
     { id: makeId(), wheelHue: 0, hue: 0, saturation: 88, lightness: 50 }
@@ -168,7 +171,17 @@ function setColor(next) {
 
 function renderSwatches(selectedHex = currentHex()) {
   const slotCount = clamp(Math.max(MIN_SWATCH_SLOTS, state.swatches.length), MIN_SWATCH_SLOTS, MAX_SWATCHES);
-  addSwatchButton.textContent = state.selectedSwatchId ? "Replace" : "Add Swatch";
+  const isReplacing = Boolean(state.selectedSwatchId);
+  const isCompact = state.hasAddedSwatch;
+  addSwatchButton.classList.toggle("is-compact", isCompact);
+  addSwatchButton.textContent = isCompact ? "Add" : "Add Swatch";
+  const atSwatchLimit = state.swatches.length >= MAX_SWATCHES;
+  addSwatchButton.disabled = atSwatchLimit;
+  addSwatchButton.setAttribute("aria-label", atSwatchLimit ? "Maximum of six swatches reached" : "Add swatch");
+  replaceSwatchButton.disabled = !isReplacing;
+  replaceSwatchButton.classList.toggle("is-active", isReplacing);
+  replaceSwatchButton.setAttribute("aria-label", isReplacing ? "Replace selected swatch" : "Replace swatch, select a swatch first");
+  swatchActions.classList.toggle("has-added", state.hasAddedSwatch || isReplacing);
   swatchesElement.dataset.count = String(slotCount);
 
   const slots = Array.from({ length: slotCount }, (_, index) => {
@@ -247,7 +260,7 @@ function isDeleteCueClick(event) {
 }
 
 function clearSwatchSelectionOnOutsideClick(event) {
-  if (!state.selectedSwatchId || event.target.closest(".swatch-slot, #addSwatchButton")) {
+  if (!state.selectedSwatchId || event.target.closest(".swatch-slot, #addSwatchButton, #replaceSwatchButton")) {
     return;
   }
 
@@ -507,9 +520,12 @@ async function enableSensors() {
 }
 
 function addSwatch() {
-  const selectedIndex = state.swatches.findIndex((swatch) => swatch.id === state.selectedSwatchId);
+  if (state.swatches.length >= MAX_SWATCHES) {
+    return;
+  }
+
   const swatch = {
-    id: selectedIndex >= 0 ? state.swatches[selectedIndex].id : makeId(),
+    id: makeId(),
     wheelHue: state.wheelHue,
     hue: state.hue,
     saturation: state.saturation,
@@ -517,17 +533,32 @@ function addSwatch() {
   };
   const hex = currentHex();
   state.selectedSwatchId = swatch.id;
+  state.hasAddedSwatch = true;
+  state.selectedSwatchId = null;
+  state.swatches = [swatch, ...state.swatches.filter((saved) => hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, MAX_SWATCHES);
+  renderSwatches(hex);
+  statusLine.textContent = "";
+}
 
-  if (selectedIndex >= 0) {
-    state.swatches = state.swatches.map((saved, index) => index === selectedIndex ? swatch : saved);
-    renderSwatches(hex);
-    statusLine.textContent = `${hex} replaced in your swatches.`;
+function replaceSelectedSwatch() {
+  const selectedIndex = state.swatches.findIndex((swatch) => swatch.id === state.selectedSwatchId);
+
+  if (selectedIndex < 0) {
     return;
   }
 
-  state.swatches = [swatch, ...state.swatches.filter((saved) => hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, MAX_SWATCHES);
+  const replacement = {
+    id: state.selectedSwatchId,
+    wheelHue: state.wheelHue,
+    hue: state.hue,
+    saturation: state.saturation,
+    lightness: state.lightness
+  };
+  const hex = currentHex();
+  state.hasAddedSwatch = true;
+  state.swatches = state.swatches.map((swatch, index) => index === selectedIndex ? replacement : swatch);
   renderSwatches(hex);
-  statusLine.textContent = `${hex} added to your swatches.`;
+  statusLine.textContent = `${hex} replaced in your swatches.`;
 }
 
 function roundedRectPath(context, x, y, width, height, radius) {
@@ -643,6 +674,7 @@ satControl.addEventListener("input", () => {
 document.addEventListener("click", clearSwatchSelectionOnOutsideClick, true);
 sensorButton.addEventListener("click", enableSensors);
 addSwatchButton.addEventListener("click", addSwatch);
+replaceSwatchButton.addEventListener("click", replaceSelectedSwatch);
 copyButton.addEventListener("click", downloadPalette);
 calibrateButton.addEventListener("click", () => {
   state.headingOffset = state.lastHeading;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#cf244c">
     <title>Inside Color Wheel</title>
-    <link rel="stylesheet" href="./styles.css?v=1.5">
+    <link rel="stylesheet" href="./styles.css?v=2.6">
   </head>
   <body>
     <main class="app-shell" aria-labelledby="app-title">
@@ -14,7 +14,7 @@
 
         <div class="top-bar">
           <div>
-            <p class="eyebrow">Navigating color (v1.5)</p>
+            <p class="eyebrow">Navigating color (v2.6)</p>
             <h1 id="app-title">Color Compass</h1>
           </div>
           <button class="icon-button" id="calibrateButton" type="button" aria-label="Calibrate current direction as zero degrees">
@@ -30,7 +30,18 @@
 
         <div class="live-zone">
           <div class="sample-card" id="sampleCard" role="img" aria-label="Current selected color"></div>
-          <button class="add-button" id="addSwatchButton" type="button">Add Swatch</button>
+          <div class="swatch-actions" id="swatchActions">
+            <button class="add-button" id="addSwatchButton" type="button">Add Swatch</button>
+            <button class="add-button replace-button" id="replaceSwatchButton" type="button" disabled>
+              <svg class="replace-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 10a8 8 0 0 0-13.4-5.8L4 7"></path>
+                <path d="M4 3v4h4"></path>
+                <path d="M4 14a8 8 0 0 0 13.4 5.8L20 17"></path>
+                <path d="M20 21v-4h-4"></path>
+              </svg>
+              Replace
+            </button>
+          </div>
           <p class="status-line" id="statusLine">Use the controls below, or enable motion sensors on a phone.</p>
         </div>
 
@@ -60,6 +71,6 @@
       </section>
     </main>
 
-    <script src="./script.js?v=1.5"></script>
+    <script src="./script.js?v=2.6"></script>
   </body>
 </html>
