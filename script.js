@@ -18,8 +18,8 @@ const MIN_SWATCH_SLOTS = 3;
 const MAX_SWATCHES = 6;
 const SENSOR_SMOOTHING = 0.14;
 const MOTION_SMOOTHING = 0.12;
-const LIGHT_DARK_TILT = 5;
-const LIGHT_MID_TILT = 50;
+const LIGHT_DARK_TILT = 14;
+const LIGHT_MID_TILT = 83;
 const LIGHT_BRIGHT_TILT = 105;
 const TRADITIONAL_WHEEL = [
   { wheel: 0, hsl: 0 },
@@ -48,6 +48,7 @@ const state = {
   smoothedFrontBackTilt: null,
   smoothedSideTilt: null,
   selectedSwatchId: null,
+  selectedSlotIndex: null,
   hasAddedSwatch: false,
   sensorsEnabled: false,
   swatches: [
@@ -171,11 +172,11 @@ function setColor(next) {
 
 function renderSwatches(selectedHex = currentHex()) {
   const slotCount = clamp(Math.max(MIN_SWATCH_SLOTS, state.swatches.length), MIN_SWATCH_SLOTS, MAX_SWATCHES);
-  const isReplacing = Boolean(state.selectedSwatchId);
+  const isReplacing = state.selectedSwatchId !== null || state.selectedSlotIndex !== null;
   const isCompact = state.hasAddedSwatch;
   addSwatchButton.classList.toggle("is-compact", isCompact);
   addSwatchButton.textContent = isCompact ? "Add" : "Add Swatch";
-  const atSwatchLimit = state.swatches.length >= MAX_SWATCHES;
+  const atSwatchLimit = state.swatches.filter(Boolean).length >= MAX_SWATCHES;
   addSwatchButton.disabled = atSwatchLimit;
   addSwatchButton.setAttribute("aria-label", atSwatchLimit ? "Maximum of six swatches reached" : "Add swatch");
   replaceSwatchButton.disabled = !isReplacing;
@@ -192,7 +193,18 @@ function renderSwatches(selectedHex = currentHex()) {
 
     if (!swatch) {
       slot.classList.add("is-empty");
-      slot.setAttribute("aria-hidden", "true");
+      const emptyButton = document.createElement("button");
+      emptyButton.className = "empty-swatch";
+      emptyButton.type = "button";
+      emptyButton.dataset.index = index;
+      emptyButton.setAttribute("aria-label", `Empty swatch slot ${index + 1}. Select to replace.`);
+      emptyButton.setAttribute("aria-current", state.selectedSlotIndex === index ? "true" : "false");
+      emptyButton.addEventListener("click", () => {
+        state.selectedSwatchId = null;
+        state.selectedSlotIndex = index;
+        renderSwatches();
+      });
+      slot.append(emptyButton);
       return slot;
     }
 
@@ -221,6 +233,7 @@ function renderSwatches(selectedHex = currentHex()) {
       }
 
       state.selectedSwatchId = swatch.id;
+      state.selectedSlotIndex = null;
       state.tintOffset = swatch.lightness - 50;
       setColor(swatch);
       renderSwatches(hex);
@@ -260,31 +273,34 @@ function isDeleteCueClick(event) {
 }
 
 function clearSwatchSelectionOnOutsideClick(event) {
-  if (!state.selectedSwatchId || event.target.closest(".swatch-slot, #addSwatchButton, #replaceSwatchButton")) {
+  const hasSelection = state.selectedSwatchId !== null || state.selectedSlotIndex !== null;
+  if (!hasSelection || event.target.closest(".swatch-slot, #addSwatchButton, #replaceSwatchButton")) {
     return;
   }
 
   state.selectedSwatchId = null;
+  state.selectedSlotIndex = null;
   renderSwatches();
 }
 
 function deleteSwatch(swatchId) {
-  const deletedIndex = state.swatches.findIndex((swatch) => swatch.id === swatchId);
+  const deletedIndex = state.swatches.findIndex((swatch) => swatch?.id === swatchId);
 
   if (deletedIndex < 0) {
     return;
   }
 
-  state.swatches = state.swatches.filter((swatch) => swatch.id !== swatchId);
-  const hasRemainingSwatches = state.swatches.length > 0;
+  state.swatches = state.swatches.filter((swatch) => swatch?.id !== swatchId);
+  const hasRemainingSwatches = state.swatches.some(Boolean);
   state.selectedSwatchId = null;
+  state.selectedSlotIndex = null;
 
   renderSwatches();
   statusLine.textContent = hasRemainingSwatches ? "Swatch deleted." : "Swatch deleted. Add a new swatch when ready.";
 }
 
 function selectedSwatchIndex() {
-  return state.swatches.findIndex((swatch) => swatch.id === swatchGesture.id);
+  return state.swatches.findIndex((swatch) => swatch?.id === swatchGesture.id);
 }
 
 function captureSwatchPointer(button, pointerId) {
@@ -313,6 +329,7 @@ function startSwatchGesture(event) {
   swatchGesture.didDrag = false;
   swatchGesture.deleteOnTap = swatchGesture.id === state.selectedSwatchId && isDeleteCueClick(event);
   state.selectedSwatchId = swatchGesture.id;
+  state.selectedSlotIndex = null;
 
   swatchGesture.longPressTimer = window.setTimeout(() => {
     swatchGesture.isEditing = true;
@@ -520,7 +537,7 @@ async function enableSensors() {
 }
 
 function addSwatch() {
-  if (state.swatches.length >= MAX_SWATCHES) {
+  if (state.swatches.filter(Boolean).length >= MAX_SWATCHES) {
     return;
   }
 
@@ -532,23 +549,26 @@ function addSwatch() {
     lightness: state.lightness
   };
   const hex = currentHex();
-  state.selectedSwatchId = swatch.id;
   state.hasAddedSwatch = true;
   state.selectedSwatchId = null;
-  state.swatches = [swatch, ...state.swatches.filter((saved) => hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, MAX_SWATCHES);
+  state.selectedSlotIndex = null;
+  const emptyIndex = state.swatches.findIndex((saved) => !saved);
+  if (emptyIndex >= 0) {
+    state.swatches[emptyIndex] = swatch;
+  } else {
+    state.swatches = [swatch, ...state.swatches.filter((saved) => saved && hslToHex(saved.hue, saved.saturation, saved.lightness) !== hex)].slice(0, MAX_SWATCHES);
+  }
   renderSwatches(hex);
   statusLine.textContent = "";
 }
 
 function replaceSelectedSwatch() {
-  const selectedIndex = state.swatches.findIndex((swatch) => swatch.id === state.selectedSwatchId);
+  const selectedIndex = state.selectedSlotIndex ?? state.swatches.findIndex((swatch) => swatch?.id === state.selectedSwatchId);
+  if (selectedIndex < 0) return;
 
-  if (selectedIndex < 0) {
-    return;
-  }
-
+  const replacementId = state.selectedSwatchId ?? makeId();
   const replacement = {
-    id: state.selectedSwatchId,
+    id: replacementId,
     wheelHue: state.wheelHue,
     hue: state.hue,
     saturation: state.saturation,
@@ -556,7 +576,12 @@ function replaceSelectedSwatch() {
   };
   const hex = currentHex();
   state.hasAddedSwatch = true;
-  state.swatches = state.swatches.map((swatch, index) => index === selectedIndex ? replacement : swatch);
+  while (state.swatches.length <= selectedIndex) {
+    state.swatches.push(null);
+  }
+  state.swatches[selectedIndex] = replacement;
+  state.selectedSwatchId = replacement.id;
+  state.selectedSlotIndex = null;
   renderSwatches(hex);
   statusLine.textContent = `${hex} replaced in your swatches.`;
 }
@@ -676,10 +701,13 @@ sensorButton.addEventListener("click", enableSensors);
 addSwatchButton.addEventListener("click", addSwatch);
 replaceSwatchButton.addEventListener("click", replaceSelectedSwatch);
 copyButton.addEventListener("click", downloadPalette);
-calibrateButton.addEventListener("click", () => {
-  state.headingOffset = state.lastHeading;
-  statusLine.textContent = "Current direction calibrated as the start of the wheel.";
-});
+
+if (calibrateButton) {
+  calibrateButton.addEventListener("click", () => {
+    state.headingOffset = state.lastHeading;
+    statusLine.textContent = "Current direction calibrated as the start of the wheel.";
+  });
+}
 
 setColor(state);
 renderSwatches();

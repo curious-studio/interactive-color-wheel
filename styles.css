@@ -240,7 +240,7 @@ h1 {
 .swatch-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   width: min(294px, 70vw);
   min-height: 50px;
   gap: 10px;
@@ -271,6 +271,7 @@ h1 {
 }
 
 .replace-button {
+  order: -1;
   width: 0;
   min-width: 0;
   padding-inline: 0;
@@ -436,8 +437,27 @@ h1 {
   mix-blend-mode: screen;
 }
 
-.swatch-slot.is-empty + .swatch-slot.is-empty {
+.swatch-slot + .swatch-slot {
   margin-left: 3px;
+}
+
+.empty-swatch {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.empty-swatch:hover,
+.empty-swatch:focus-visible,
+.empty-swatch[aria-current="true"] {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--outline);
 }
 
 .swatch {
@@ -497,6 +517,10 @@ h1 {
   font-weight: 500;
   letter-spacing: 0.06em;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+.swatch-slot:first-child .swatch::after {
+  left: 15px;
 }
 
 .swatches.is-editing .swatch:not(.is-lifted) {
