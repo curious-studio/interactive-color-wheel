@@ -1,0 +1,9 @@
+{
+  "name": "Color Compass",
+  "short_name": "Color Compass",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#cf244c",
+  "background_color": "#171015"
+}

@@ -20,7 +20,7 @@ const SENSOR_SMOOTHING = 0.14;
 const MOTION_SMOOTHING = 0.12;
 const LIGHT_DARK_TILT = 14;
 const LIGHT_MID_TILT = 83;
-const LIGHT_BRIGHT_TILT = 105;
+const LIGHT_BRIGHT_TILT = 160;
 const TRADITIONAL_WHEEL = [
   { wheel: 0, hsl: 0 },
   { wheel: 60, hsl: 30 },
@@ -161,6 +161,19 @@ function setColor(next) {
   root.style.setProperty("--sat", `${state.saturation}%`);
   root.style.setProperty("--light", `${state.lightness}%`);
   root.style.setProperty("--selected-hex", hex);
+  root.style.setProperty(
+    "--eyebrow-color",
+    `hsl(${state.hue} ${state.saturation}% ${Math.max(0, state.lightness - 20)}%)`
+  );
+  const borderLift = clamp((50 - state.lightness) / 30, 0, 1);
+  const borderRed = Math.round(55 + (255 - 55) * borderLift);
+  const borderGreen = Math.round(0 + (255 - 0) * borderLift);
+  const borderBlue = Math.round(12 + (255 - 12) * borderLift);
+  const borderAlpha = 0.68 + (0.22 - 0.68) * borderLift;
+  root.style.setProperty(
+    "--action-border",
+    `rgba(${borderRed}, ${borderGreen}, ${borderBlue}, ${borderAlpha.toFixed(3)})`
+  );
   sampleCard.setAttribute("aria-label", `Current selected color ${hex}, ${colorLabel()}`);
   hueValue.textContent = `${state.wheelHue}°`;
   lightValue.textContent = `${state.lightness}%`;
@@ -501,8 +514,18 @@ function handleMotion(event) {
   state.motionSideTilt = smoothValue(state.motionSideTilt, sideTilt, MOTION_SMOOTHING);
 }
 
+function requestPortraitOrientation() {
+  if (screen.orientation?.lock) {
+    screen.orientation.lock("portrait").catch(() => {
+      // Browsers may require an installed app or fullscreen mode for orientation locks.
+    });
+  }
+}
+
 async function enableSensors() {
   try {
+    requestPortraitOrientation();
+
     if (typeof DeviceOrientationEvent === "undefined") {
       statusLine.textContent = "This browser does not expose motion sensors. Manual controls are ready.";
       return;

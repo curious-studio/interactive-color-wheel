@@ -13,6 +13,8 @@
   --light: 50%;
   --selected: hsl(var(--hue) var(--sat) var(--light));
   --selected-hex: #f00f0f;
+  --eyebrow-color: hsl(var(--hue) var(--sat) calc(var(--light) - 20%));
+  --action-border: rgba(55, 0, 12, 0.68);
   --ink: #fffaf7;
   --ink-muted: rgba(255, 250, 247, 0.76);
   --glass: rgba(20, 7, 13, 0.24);
@@ -28,8 +30,11 @@
 
 html,
 body {
+  height: 100%;
   min-height: 100%;
   margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -44,12 +49,14 @@ input {
 }
 
 .app-shell {
+  height: 100svh;
   min-height: 100svh;
 }
 
 .sensor-panel {
   position: relative;
   isolation: isolate;
+  height: 100svh;
   min-height: 100svh;
   display: grid;
   grid-template-rows: auto auto 1fr auto auto auto;
@@ -63,7 +70,7 @@ input {
   inset: -18%;
   z-index: -2;
   background:
-    radial-gradient(circle at 50% 44%, hsl(var(--hue) var(--sat) calc(var(--light) + 18%)) 0 10%, transparent 36%),
+    radial-gradient(circle at 50% 44%, hsl(var(--hue) var(--sat) calc(var(--light) - 8%)) 0 10%, transparent 36%),
     linear-gradient(
       to bottom,
       hsl(var(--hue) var(--sat) calc(var(--light) + 46%)) 0%,
@@ -134,18 +141,24 @@ h1,
 }
 
 .eyebrow {
-  color: var(--ink-muted);
+  color: var(--eyebrow-color);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  transition: color 260ms ease;
 }
 
 h1 {
   max-width: 14em;
-  font-size: clamp(1.35rem, 6.5vw, 2.8rem);
+  color: var(--action-border);
+  font-size: clamp(0.81rem, 3.9vw, 1.68rem);
   line-height: 1;
   letter-spacing: 0;
+}
+
+#app-title {
+  display: none;
 }
 
 .icon-button,
@@ -210,7 +223,7 @@ h1 {
   width: min(42vw, 292px);
   min-width: 230px;
   aspect-ratio: 1.2;
-  border: clamp(6px, 1.4vw, 12px) solid var(--outline);
+  border: 0;
   border-radius: clamp(24px, 5vw, 44px);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 42%),
@@ -228,13 +241,14 @@ h1 {
   padding: 13px 24px;
   border-radius: 999px;
   background: rgba(55, 0, 12, 0.68);
+  border: 1px solid var(--action-border);
   box-shadow: 0 16px 46px rgba(40, 0, 8, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   font-size: clamp(0.82rem, 3.6vw, 1.55rem);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
-  transition: width 260ms ease, padding 260ms ease, border-radius 260ms ease;
+  transition: width 260ms ease, padding 260ms ease, border-color 260ms ease, border-radius 260ms ease;
 }
 
 .swatch-actions {
@@ -274,6 +288,8 @@ h1 {
   order: -1;
   width: 0;
   min-width: 0;
+  border: 0;
+  box-shadow: none;
   padding-inline: 0;
   gap: 0.45em;
   font-size: 1.05rem;
@@ -281,11 +297,14 @@ h1 {
   opacity: 0;
   pointer-events: none;
   overflow: hidden;
-  transition: width 260ms ease, padding 260ms ease, opacity 180ms ease, border-radius 260ms ease;
+  transition: width 260ms ease, padding 260ms ease, opacity 180ms ease, border-color 260ms ease, border-radius 260ms ease;
 }
 
 .swatch-actions.has-added .replace-button {
   width: 150px;
+  border: 1px solid var(--action-border);
+  border-color: var(--action-border);
+  box-shadow: 0 16px 46px rgba(40, 0, 8, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   padding: 13px 24px;
   opacity: 0.42;
   pointer-events: auto;
@@ -331,8 +350,11 @@ h1 {
   gap: 14px;
   padding: 12px;
   border-radius: 22px;
-  background: var(--glass);
+  background: rgba(55, 0, 12, 0.68);
+  border: 1px solid var(--action-border);
+  box-shadow: 0 16px 46px rgba(40, 0, 8, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
+  transition: border-color 260ms ease;
 }
 
 .fallback-controls label {
@@ -376,12 +398,14 @@ h1 {
 .swatch-tray {
   margin-inline: calc(clamp(18px, 4vw, 42px) * -1);
   padding-inline: clamp(18px, 4vw, 42px);
+  min-height: 0;
   overflow: hidden;
 }
 
 .swatches {
   display: grid;
   grid-template-columns: 2.35fr 1fr 1.08fr;
+  min-height: 0;
   gap: 0;
   overflow-x: auto;
   padding: 4px 0 8px;
@@ -552,10 +576,18 @@ h1 {
 @media (max-width: 680px) {
   .sensor-panel {
     grid-template-rows: auto auto 1fr auto auto auto;
+    height: 100svh;
+    max-height: 100svh;
+    gap: clamp(10px, 1.8svh, 18px);
+    padding-block: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom));
   }
 
   .top-bar {
     align-items: flex-start;
+  }
+
+  .live-zone {
+    min-height: 0;
   }
 
   .fallback-controls {

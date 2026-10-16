@@ -2,10 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#cf244c">
     <title>Inside Color Wheel</title>
-    <link rel="stylesheet" href="./styles.css?v=3.0">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="stylesheet" href="./styles.css?v=0.2">
   </head>
   <body>
     <main class="app-shell" aria-labelledby="app-title">
@@ -14,7 +18,7 @@
 
         <div class="top-bar">
           <div>
-            <p class="eyebrow">Navigating color (v3.0)</p>
+            <p class="eyebrow">COLOR COMPASS (v0.2)</p>
             <h1 id="app-title">Color Compass</h1>
           </div>
           <!-- Calibration control is temporarily hidden. -->
@@ -58,7 +62,7 @@
             <input id="hueControl" type="range" min="0" max="359" value="0">
           </label>
           <label>
-            <span>Tint</span>
+            <span>Brightness</span>
             <input id="tintControl" type="range" min="-50" max="50" value="0">
           </label>
           <label>
@@ -69,6 +73,6 @@
       </section>
     </main>
 
-    <script src="./script.js?v=3.0"></script>
+    <script src="./script.js?v=0.2"></script>
   </body>
 </html>
