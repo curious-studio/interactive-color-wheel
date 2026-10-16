@@ -21,7 +21,7 @@ const SENSOR_SMOOTHING = 0.14;
 const MOTION_SMOOTHING = 0.12;
 const LIGHT_DARK_TILT = 14;
 const LIGHT_MID_TILT = 83;
-const LIGHT_BRIGHT_TILT = 160;
+const LIGHT_BRIGHT_TILT = 137;
 const TRADITIONAL_WHEEL = [
   { wheel: 0, hsl: 0 },
   { wheel: 60, hsl: 30 },
@@ -523,6 +523,14 @@ function requestPortraitOrientation() {
   }
 }
 
+function requestFullscreen() {
+  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {
+      // Fullscreen is optional and unavailable in some mobile browsers, including iOS Safari.
+    });
+  }
+}
+
 function updateSensorButton() {
   sensorButton.classList.toggle("is-on", state.sensorsEnabled);
   sensorButtonLabel.textContent = state.sensorsEnabled ? "Sensors On" : "Sensors Off";
@@ -544,6 +552,7 @@ async function enableSensors() {
   }
 
   try {
+    requestFullscreen();
     requestPortraitOrientation();
 
     if (typeof DeviceOrientationEvent === "undefined") {
