@@ -11,6 +11,7 @@ const addSwatchButton = document.getElementById("addSwatchButton");
 const replaceSwatchButton = document.getElementById("replaceSwatchButton");
 const swatchActions = document.getElementById("swatchActions");
 const sensorButton = document.getElementById("sensorButton");
+const sensorButtonLabel = document.getElementById("sensorButtonLabel");
 const calibrateButton = document.getElementById("calibrateButton");
 const copyButton = document.getElementById("copyButton");
 const swatchesElement = document.getElementById("swatches");
@@ -522,7 +523,26 @@ function requestPortraitOrientation() {
   }
 }
 
+function updateSensorButton() {
+  sensorButton.classList.toggle("is-on", state.sensorsEnabled);
+  sensorButtonLabel.textContent = state.sensorsEnabled ? "Sensors On" : "Sensors Off";
+  sensorButton.setAttribute("aria-pressed", state.sensorsEnabled ? "true" : "false");
+}
+
+function disableSensors() {
+  window.removeEventListener("devicemotion", handleMotion, true);
+  window.removeEventListener("deviceorientation", handleOrientation, true);
+  state.sensorsEnabled = false;
+  updateSensorButton();
+  statusLine.textContent = "Sensors paused. Tap Sensors Off to resume motion input.";
+}
+
 async function enableSensors() {
+  if (state.sensorsEnabled) {
+    disableSensors();
+    return;
+  }
+
   try {
     requestPortraitOrientation();
 
@@ -552,7 +572,7 @@ async function enableSensors() {
 
     window.addEventListener("deviceorientation", handleOrientation, true);
     state.sensorsEnabled = true;
-    sensorButton.textContent = "Sensors On";
+    updateSensorButton();
     statusLine.textContent = "Sensors enabled. Face different directions and tilt the phone.";
   } catch (error) {
     statusLine.textContent = "Sensors could not start here. Manual controls are ready.";

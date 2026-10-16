@@ -59,7 +59,7 @@ input {
   height: 100svh;
   min-height: 100svh;
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto auto;
+  grid-template-rows: auto 1fr auto auto auto;
   gap: clamp(14px, 2.2svh, 26px);
   padding: max(18px, env(safe-area-inset-top)) clamp(18px, 4vw, 42px) max(18px, env(safe-area-inset-bottom));
   overflow: hidden;
@@ -121,6 +121,7 @@ input {
   mix-blend-mode: multiply;
 }
 
+.top-cluster,
 .top-bar,
 .action-row,
 .readout-strip {
@@ -130,12 +131,16 @@ input {
   gap: 14px;
 }
 
+.top-cluster {
+  align-items: stretch;
+  gap: 2px;
+}
+
 .top-bar {
-  min-height: 52px;
+  min-height: 44px;
 }
 
 .eyebrow,
-h1,
 .status-line {
   margin: 0;
 }
@@ -147,18 +152,6 @@ h1,
   letter-spacing: 0.14em;
   text-transform: uppercase;
   transition: color 260ms ease;
-}
-
-h1 {
-  max-width: 14em;
-  color: var(--action-border);
-  font-size: clamp(0.81rem, 3.9vw, 1.68rem);
-  line-height: 1;
-  letter-spacing: 0;
-}
-
-#app-title {
-  display: none;
 }
 
 .icon-button,
@@ -386,8 +379,48 @@ h1 {
 }
 
 .sensor-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 10px;
   background: var(--ink);
   color: #27000b;
+  white-space: nowrap;
+  transition: background-color 220ms ease;
+}
+
+.sensor-button.is-on {
+  background: rgba(255, 250, 247, 0.5);
+}
+
+.sensor-toggle {
+  display: none;
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(39, 0, 11, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(39, 0, 11, 0.2);
+}
+
+.sensor-toggle span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fffaf7;
+  transition: transform 220ms ease;
+}
+
+.sensor-button.is-on .sensor-toggle {
+  display: inline-block;
+}
+
+.sensor-button.is-on .sensor-toggle span {
+  transform: translateX(12px);
 }
 
 .ghost-button {
@@ -575,7 +608,7 @@ h1 {
 
 @media (max-width: 680px) {
   .sensor-panel {
-    grid-template-rows: auto auto 1fr auto auto auto;
+    grid-template-rows: auto 1fr auto auto auto;
     height: 100svh;
     max-height: 100svh;
     gap: clamp(10px, 1.8svh, 18px);
@@ -584,6 +617,7 @@ h1 {
 
   .top-bar {
     align-items: flex-start;
+    min-height: 38px;
   }
 
   .live-zone {

@@ -9,25 +9,24 @@
     <meta name="theme-color" content="#cf244c">
     <title>Inside Color Wheel</title>
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=0.2">
+    <link rel="stylesheet" href="./styles.css?v=0.3">
   </head>
   <body>
-    <main class="app-shell" aria-labelledby="app-title">
+    <main class="app-shell" aria-label="Color Compass">
       <section class="sensor-panel" aria-label="Live color selector">
         <div class="ambient-wheel" aria-hidden="true"></div>
 
-        <div class="top-bar">
-          <div>
-            <p class="eyebrow">COLOR COMPASS (v0.2)</p>
-            <h1 id="app-title">Color Compass</h1>
+        <div class="top-cluster">
+          <div class="top-bar">
+            <div>
+              <p class="eyebrow">COLOR COMPASS (v0.3)</p>
+            </div>
+            <button class="sensor-button" id="sensorButton" type="button" aria-pressed="false">
+              <span id="sensorButtonLabel">Enable Sensors</span>
+              <span class="sensor-toggle" aria-hidden="true"><span></span></span>
+            </button>
           </div>
-          <!-- Calibration control is temporarily hidden. -->
-        </div>
 
-        <div class="readout-strip" aria-live="polite">
-          <span><strong id="hueValue">0°</strong> hue</span>
-          <span><strong id="lightValue">50%</strong> light</span>
-          <span><strong id="satValue">88%</strong> saturation</span>
         </div>
 
         <div class="live-zone">
@@ -48,7 +47,11 @@
         </div>
 
         <div class="action-row">
-          <button class="sensor-button" id="sensorButton" type="button">Enable Sensors</button>
+          <div class="readout-strip" aria-live="polite">
+            <span><strong id="hueValue">0°</strong> hue</span>
+            <span><strong id="lightValue">50%</strong> light</span>
+            <span><strong id="satValue">88%</strong> saturation</span>
+          </div>
           <button class="ghost-button" id="copyButton" type="button">Save</button>
         </div>
 
@@ -73,6 +76,6 @@
       </section>
     </main>
 
-    <script src="./script.js?v=0.2"></script>
+    <script src="./script.js?v=0.3"></script>
   </body>
 </html>
