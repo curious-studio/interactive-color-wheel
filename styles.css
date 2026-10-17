@@ -765,9 +765,29 @@ input {
     min-height: 62px;
   }
 
+  .swatch-actions:not(.has-added) {
+    display: grid;
+    place-items: center;
+  }
+
   .add-button {
     width: min(323px, 100%);
     min-height: 62px;
+  }
+
+  .swatch-actions.has-added {
+    gap: 6px;
+  }
+
+  .swatch-actions.has-added .replace-button,
+  .swatch-actions.has-added .save-button,
+  .swatch-actions.has-added .add-button.is-compact {
+    width: calc((100% - 12px) / 3);
+    min-width: 0;
+    padding-inline: 6px;
+    font-size: clamp(0.72rem, 3.2vw, 1.05rem);
+    letter-spacing: 0.05em;
+    gap: 0.25em;
   }
 
   .action-row {
