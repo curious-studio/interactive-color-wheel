@@ -149,6 +149,10 @@ input {
   margin: 0;
 }
 
+.status-line {
+  min-height: 1.25em;
+}
+
 .eyebrow {
   color: var(--eyebrow-color);
   font-size: 0.72rem;
