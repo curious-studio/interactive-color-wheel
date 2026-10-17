@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#cf244c">
     <title>Inside Color Wheel</title>
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="stylesheet" href="./styles.css?v=0.4&layout=motion-tune">
+    <link rel="stylesheet" href="./styles.css?v=0.5&layout=palette-action2">
   </head>
   <body>
     <main class="app-shell" aria-label="Color Compass">
@@ -19,7 +19,7 @@
         <div class="top-cluster">
           <div class="top-bar">
             <div>
-              <p class="eyebrow">COLOR COMPASS (v0.4)</p>
+              <p class="eyebrow">COLOR COMPASS (v0.5)</p>
             </div>
             <button class="sensor-button" id="sensorButton" type="button" aria-pressed="false">
               <span id="sensorButtonLabel">Enable Sensors</span>
@@ -42,6 +42,14 @@
               </svg>
               Replace
             </button>
+            <button class="add-button save-button" id="copyButton" type="button">
+              <svg class="save-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4v10"></path>
+                <path d="m8 10 4 4 4-4"></path>
+                <path d="M5 17v3h14v-3"></path>
+              </svg>
+              Save
+            </button>
           </div>
           <p class="status-line" id="statusLine">Use the controls below, or enable motion sensors on a phone.</p>
         </div>
@@ -52,7 +60,6 @@
             <span><strong id="lightValue">50%</strong> light</span>
             <span><strong id="satValue">88%</strong> saturation</span>
           </div>
-          <button class="ghost-button" id="copyButton" type="button">Save</button>
         </div>
 
         <section class="swatch-tray" aria-label="Saved swatches">
@@ -76,6 +83,6 @@
       </section>
     </main>
 
-    <script src="./script.js?v=0.4&layout=motion-tune"></script>
+    <script src="./script.js?v=0.5&layout=palette-action2"></script>
   </body>
 </html>

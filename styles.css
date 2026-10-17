@@ -13,6 +13,9 @@
   --light: 50%;
   --selected: hsl(var(--hue) var(--sat) var(--light));
   --selected-hex: #f00f0f;
+  --sensor-attention-hue: 0;
+  --sensor-attention-sat: 88%;
+  --sensor-attention-light: 50%;
   --eyebrow-color: hsl(var(--hue) var(--sat) calc(var(--light) - 20%));
   --action-border: rgba(55, 0, 12, 0.68);
   --ink: #fffaf7;
@@ -251,7 +254,7 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(294px, 70vw);
+  width: min(420px, 90vw);
   min-height: 50px;
   gap: 10px;
 }
@@ -320,6 +323,47 @@ input {
 
 .replace-button::after {
   content: none;
+}
+
+.save-button {
+  order: 1;
+  width: 0;
+  min-width: 0;
+  border: 0;
+  padding-inline: 0;
+  gap: 0.45em;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  visibility: hidden;
+  transition: width 260ms ease, padding 260ms ease, opacity 180ms ease, border-color 260ms ease, border-radius 260ms ease;
+}
+
+.save-button::after {
+  content: none;
+}
+
+.swatch-actions.has-saved .save-button {
+  width: 150px;
+  border: 1px solid var(--action-border);
+  padding: 13px 24px;
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.save-icon {
+  order: -1;
+  width: 1.35em;
+  height: 1.35em;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.2;
 }
 
 .replace-icon {
@@ -407,29 +451,86 @@ input {
 }
 
 .sensor-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  width: 150px;
+  flex: 0 0 150px;
   min-height: 36px;
   padding: 7px 10px;
-  background: var(--ink);
+  background: transparent;
+  isolation: isolate;
   color: #27000b;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
   white-space: nowrap;
   transition: background-color 220ms ease;
 }
 
-.sensor-button.is-on {
+.sensor-button::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
   background: rgba(255, 250, 247, 0.5);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.sensor-button > * {
+  position: relative;
+  z-index: 1;
+  mix-blend-mode: normal;
+}
+
+@media (max-width: 680px) {
+  .sensor-button.sensor-prompt-active {
+    border: 2px solid transparent;
+  }
+
+  .sensor-button.sensor-prompt-active::before {
+    inset: -2px;
+    border: 2px solid transparent;
+    background:
+      linear-gradient(rgba(255, 250, 247, 0.5), rgba(255, 250, 247, 0.5)) padding-box,
+      conic-gradient(
+        from var(--sensor-prompt-angle),
+        hsl(var(--sensor-attention-hue) var(--sensor-attention-sat) var(--sensor-attention-light) / 0.18),
+        hsl(var(--sensor-attention-hue) var(--sensor-attention-sat) calc(var(--sensor-attention-light) + 18%) / 0.9),
+        hsl(var(--sensor-attention-hue) var(--sensor-attention-sat) var(--sensor-attention-light) / 0.18)
+      ) border-box;
+    mix-blend-mode: screen;
+    animation: sensor-prompt-spin 9s linear infinite;
+  }
+}
+
+@property --sensor-prompt-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes sensor-prompt-spin {
+  to {
+    --sensor-prompt-angle: 360deg;
+  }
 }
 
 .sensor-toggle {
-  display: none;
   position: relative;
   width: 30px;
   height: 18px;
   border-radius: 999px;
   background: rgba(39, 0, 11, 0.24);
   box-shadow: inset 0 0 0 1px rgba(39, 0, 11, 0.2);
+}
+
+.sensor-button.sensor-prompt-active:not(.is-on) .sensor-toggle {
+  display: none;
 }
 
 .sensor-toggle span {
@@ -441,10 +542,6 @@ input {
   border-radius: 50%;
   background: #fffaf7;
   transition: transform 220ms ease;
-}
-
-.sensor-button.is-on .sensor-toggle {
-  display: inline-block;
 }
 
 .sensor-button.is-on .sensor-toggle span {
@@ -684,7 +781,12 @@ input {
   }
 
   .swatch-tray {
+    height: clamp(88px, 15svh, 128px);
     margin-top: 10px;
+  }
+
+  .swatches {
+    height: 100%;
   }
 
   .ghost-button {
@@ -692,7 +794,7 @@ input {
   }
 
   .swatch-slot {
-    height: 128px;
+    height: 100%;
   }
 
   .fallback-controls {
@@ -717,6 +819,10 @@ input {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sensor-button.sensor-prompt-active::before {
+    animation: none;
+  }
+
   .swatches.is-editing .swatch:not(.is-lifted) {
     animation: none;
   }

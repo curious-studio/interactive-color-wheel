@@ -52,9 +52,9 @@ const state = {
   selectedSlotIndex: null,
   hasAddedSwatch: false,
   sensorsEnabled: false,
-  swatches: [
-    { id: makeId(), wheelHue: 0, hue: 0, saturation: 88, lightness: 50 }
-  ]
+  sensorPromptDismissed: false,
+  initialColorCaptured: false,
+  swatches: []
 };
 
 const swatchGesture = {
@@ -150,6 +150,12 @@ function setColor(next) {
   state.lightness = clamp(Math.round(next.lightness ?? state.lightness), 0, 100);
 
   const hex = currentHex();
+  if (!state.initialColorCaptured) {
+    root.style.setProperty("--sensor-attention-hue", state.hue);
+    root.style.setProperty("--sensor-attention-sat", `${state.saturation}%`);
+    root.style.setProperty("--sensor-attention-light", `${state.lightness}%`);
+    state.initialColorCaptured = true;
+  }
   root.style.setProperty("--hue", state.hue);
   root.style.setProperty("--hue-left", traditionalWheelToHslHue(state.wheelHue - 60));
   root.style.setProperty("--hue-mid-left", traditionalWheelToHslHue(state.wheelHue - 30));
@@ -197,6 +203,7 @@ function renderSwatches(selectedHex = currentHex()) {
   replaceSwatchButton.classList.toggle("is-active", isReplacing);
   replaceSwatchButton.setAttribute("aria-label", isReplacing ? "Replace selected swatch" : "Replace swatch, select a swatch first");
   swatchActions.classList.toggle("has-added", state.hasAddedSwatch || isReplacing);
+  swatchActions.classList.toggle("has-saved", state.hasAddedSwatch);
   swatchesElement.dataset.count = String(slotCount);
 
   const slots = Array.from({ length: slotCount }, (_, index) => {
@@ -533,8 +540,22 @@ function requestFullscreen() {
 
 function updateSensorButton() {
   sensorButton.classList.toggle("is-on", state.sensorsEnabled);
-  sensorButtonLabel.textContent = state.sensorsEnabled ? "Sensors On" : "Sensors Off";
+  sensorButton.classList.toggle("sensor-prompt-active", !state.sensorPromptDismissed);
+  sensorButtonLabel.textContent = state.sensorsEnabled
+    ? "Sensors On"
+    : state.sensorPromptDismissed
+      ? "Sensors Off"
+      : "Enable Sensors";
   sensorButton.setAttribute("aria-pressed", state.sensorsEnabled ? "true" : "false");
+}
+
+function dismissSensorPrompt() {
+  if (state.sensorPromptDismissed) {
+    return;
+  }
+
+  state.sensorPromptDismissed = true;
+  updateSensorButton();
 }
 
 function disableSensors() {
@@ -546,6 +567,8 @@ function disableSensors() {
 }
 
 async function enableSensors() {
+  dismissSensorPrompt();
+
   if (state.sensorsEnabled) {
     disableSensors();
     return;
@@ -762,4 +785,5 @@ if (calibrateButton) {
 }
 
 setColor(state);
+updateSensorButton();
 renderSwatches();
